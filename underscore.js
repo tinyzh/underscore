@@ -253,6 +253,15 @@
         iteratee = cb(iteratee,context);
 
         var keys = !isArrayLike(obj) && _.keys(obj),
+            length = (key || obj).length,
+            results = Array(length);
+
+        for(var index = 0;index < length;index++){
+            var currentKey = keys ? keys[index] : index;
+            results[index] = iteratee(obk[currentKey],currentKey,obj);
+        }
+
+        return results;
     }
 
 
