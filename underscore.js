@@ -249,20 +249,67 @@
         return obj;
     };
 
+    // 与es5中Array.prototype.map 使用方法类似
+    // 传参形式与_.each 方法类似
+    // 遍历数组（每个元素）或者对象的每个元素(value)
+    // 对每个元素执行 iteratee 迭代方法
+    // 将结果保存到新的数组中,并返回
     _.map = _.collect = function(obj,iteratee,context){
+        // 根据 context 确定不同的迭代函数
         iteratee = cb(iteratee,context);
 
+        // 如果传参是对象，则获取它的 keys值数组（短路表达式）
         var keys = !isArrayLike(obj) && _.keys(obj),
+            // 如果obj为对象，则 length 为key.length
+            // 如果obj为数组，则 length 为obj.length
             length = (key || obj).length,
-            results = Array(length);
+            results = Array(length);  //结果数组
 
+        // 遍历
         for(var index = 0;index < length;index++){
+            // 如果obj为对象，则currentKey 为对象键值 key
+            // 如果obj为数组，则 currentKey 为index 值
             var currentKey = keys ? keys[index] : index;
             results[index] = iteratee(obk[currentKey],currentKey,obj);
         }
 
+        // 返回新的结果数组
         return results;
+    };
+
+    function createReduce(dir){
+        function iterator(obj,iteratee,memo,keys,index,length){
+            for(;index >= 0 && index < length;index += dir){
+                var currentKey = keys ? keys[index] : index;
+
+                memo = iteratee(memo,obj[currentKey],currentKey,obj);
+            }
+            return memo
+        }
+
+        // _.reduce(_.reduceRight) 可传入4个参数
+        // obj 为数组或者对象
+        // memo 初始值，如果有，则从obj第一个元素开始迭代
+        // 如果没有，则从obj 第二个元素开始迭代，将第一个元素作为初始值
+        // context 为迭代函数中的this 指向
+        return function(obj,iteratee,memo,context){
+            iteratee = optimizeCb(iteratee,context,4);
+            var keys = !isArrayLike(obj) && _.keys(obj),
+                length = (keys || obj).length,
+                index = dir > 0 ? 0 : length -1;
+
+            // 如果没有指定初始值
+            // 则把第一个元素指定为初始值
+            if(arguments.length < 3){
+                memo = obj[keys ? keys[index] : index];
+                // 根据dir 确定是想做还是向右遍历
+                index += dir;
+            }
+            return iterator(obj,iteratee,memo,keys,index,length);
+        };
     }
+
+    _.reduce = _.foldl = _.inject = createReduce(1);
 
 
 
