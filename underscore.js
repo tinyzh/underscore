@@ -309,7 +309,112 @@
         };
     }
 
+    // 与es5中 Array.prototype.reduce使用方法类似
+    // 可以传入四个参数
+    // _.reduce(list,iteratee,[memo],[context])
     _.reduce = _.foldl = _.inject = createReduce(1);
+
+    // 与es5中 Array.prototype.reduceRight 使用方法类似
+    _.reduceRight = _.foldr = createReduce(-1);
+
+    // 寻找数组或者对象中第一个满足条件(predicate 函数返回 true) 的元素
+    // 并返回该元素值
+    _.find = _.detect = function(obj,predicate,context){
+        var key;
+        // 如果 obj 是数组 ， key为满足条件的下标
+        if(isArrayLike(obj)){
+            key = _findIndex(obj,predicate,context);
+        }else{
+            // 如果obj 是对象 ， key为满足条件的元素的key值
+            key = _findKey(obj,predicate,context);
+        }
+
+        // 如果该元素存在，则返回该元素
+        // 如果不存在，则默认返回 undefined (函数没有返回， 即返回 undefined)
+        if(key !== void 0 && key !== -1) return obj[key];
+    };
+
+    // 与es5 中Array.prototype.filter 使用方法类似
+    // 寻找数组或者对象中所有满足条件的元素
+    // 如果是数组， 则将‘元素中’存入数组
+    // 如果是对象，则将‘value值’存入数组
+    // 最后返回该数组
+    _.filter = _.select = function(obj,predicate,context){
+        var results = [];
+
+        predicate = cb(predicate,context);
+
+        _.each(obj,function(value,index,list){
+            if(predicate(value,index,list) results.push(value));
+        });
+
+        return results;
+    };
+
+    // 寻找数组或者对象中所有不满足条件的元素
+    // 并以数组方式返回
+    // 所得结果是 _.filter 方法的补集（也就是和filter相反）
+    _.reject = function(obj,predicate,context){
+        return _.filter(obj, _.negate(cb(predicate)),context);
+    };
+
+    // 与es5 中Array.prototype.every 方法类似
+    // 判断数组中的每个元素或者对象中每个value值是否都满足predicate 函数中的判断条件
+    // 如果是，则返回true,否则返回false（只要有一个不满足就返回false）
+    _.every = _.all = function(obj,predicate,context){
+        // 根据 this 指向，返回相应 predicate 函数
+        predicate = cb(predicate,context);
+
+        var keys = !isArrayLike(obj) && _.keys(obj),
+            length = (key || obj).length;
+
+        for(var index = 0; index < length; index++){
+            var currentKey = keys ? keys[index] : index;
+
+            //如果有一个不能满足 predicate 中的条件
+            // 则返回 false
+            if(!predicate(obj[currentKey],currentKey,obj))
+                return false;
+        }
+
+        return true;
+    };
+
+    //与 es5 中Array.prototype.some 方法类似
+    // 判断数组或者对象中是否有一个元素（value值 for object）满足 predicate 函数中的条件
+    // 如果是则返回 true， 否则返回 false
+    _.some = _.any = function(obj,predicate,context){
+        // 根据context 返回predicate 函数
+        predicate = cb(predicate,context);
+        // 如果传参是对象，则返回该对象的keys数组
+        var keys = !isArrayLike(obj) && _.keys(obj),
+            length = (keys || obj).length;
+
+        for(var index = 0;index<length;index++){
+            var currentKey = keys ? keys[index] : index;
+            // 如果有一个元素满足条件 则返回 true
+            if(predicate(obj[currentKey],currentKey,obj)) return true;
+        }
+        return false;
+    };
+
+    // 判断数组或者对象中（value 值） 是否有指定元素
+    // 如果是object 则忽略key值，只需要查找value值即可
+    // 即该obj中是否有指定的value值
+    // 返回布尔值
+    _.contains = _.includes = _.include = function(obj,item,fromIndex,guard){
+        // 如果是对象，返回values 组成的数组
+        if(!isArrayLike(obj)) obj = _.values(obj);
+
+        // fromIndex 表示查询的起始位置
+        // 如果没有指定该参数，则默认从头找起
+        if(typeof  fromIndex != 'number' || guard) fromIndex = 0;
+
+        // _.indexOf 是数组的扩展方法
+        // 数组中寻找某一元素
+        return _.indexOf(obj,item,fromIndex) >= 0;
+    };
+
 
 
 
