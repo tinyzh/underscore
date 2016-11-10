@@ -415,6 +415,128 @@
         return _.indexOf(obj,item,fromIndex) >= 0;
     };
 
+    // 数组或者对象中的每个元素都调用method方法
+    // 返回调用后的结果（数组或者关联数组）
+    // method 参数后的参数会被当做参数传入method 方法中
+    _.invoke = function(obj,method){
+        // arguments 参数
+        var args = slice.call(arguments,2);
+
+        // 判断method 是不是函数
+        var isFunc = _.isFunction(method);
+
+        // 用map方法对数组或者对象每个元素调用方法
+        // 返回数组
+        return _.map(obj,function(value){
+            // 如果method 不是函数，则可能是obj 的key值
+            // 而 obj[method] 可能为函数
+            var func = isFunc ? method : value[method];
+            return func == null ? func : func.apply(value,args);
+        })
+    };
+
+    _.pluck = function(obj,key){
+        return _.map(obj, _.property(key));
+    };
+
+    // 根据指定的键值对
+    // 选择对象
+    _.where = function(obj,attrs){
+        return _.filter(obj, _.macher(attrs));
+    };
+
+    // 寻找第一个有指定 key-value 键值对的对象
+    _.findwhere = function(obj,attrs){
+        return _.find(obj, _.matcher(attrs));
+    };
+
+    // 寻找数组中的最大元素
+    // 或者对象中的最大值
+    // 如果有 iteratee 参数，则求每个元素经过该函数迭代后的最值
+    _.max = function(obj,iteratee,context){
+        var result = -Infinity,lastComputer = -Infinity,
+            value,computed;
+
+        // 单纯的寻找最值
+        if(iteratee == null && obj != null){
+            // 如果是数组，则寻找数组中的最大值
+            // 如果是对象，则寻找最大 value 值
+            obj = isArrayLike(obj) ? obj : _.values(obj);
+            for(var i = 0,length = obj.length; i < length; i++){
+                value = obj[i];
+                if(value > result){
+                    resule = value;
+                }
+            }
+        }else{ // 寻找元素经过迭代后的最值
+            iteratee = cb(iteratee,context);
+
+            // result 保存结果元素
+            // lastcomputed 保存计算过程中出现的最值
+            // 遍历元素
+            _.each(obj,function(value,index,list){
+                // 经过迭代函数后的值
+                computed = iteratee(value,index,list);
+                // && 的优先级高于 ||
+                if(computed > lastComputer || computed === -Infinity && result === -Infinity){
+                    result = value;
+                    lastComputer = computed;
+                }
+            });
+        }
+        return result;
+    };
+
+    // 寻找最小的元素
+    // 类似 _.max
+    _.min = function(obj,iteratee,context){
+        var result = Infinity,lastComputed = Infinity,
+            value,computed;
+        if(iteratee == null && obj != null){
+            obj = isArrayLike(obj) ? obj : _.values(obj);
+            for(var i = 0,length = obj.length;i<length){
+                value = obj[i];
+                if(value < result){
+                    result = value;
+                }
+            }
+        }else{
+            iteratee = cb(iteratee,context){
+                _.each(obj,function(value,index,list){
+                    computed = iteratee(value.index,list);
+                    if(computed < lastComputed || computed === Infinity && result === Infinity){
+                        result = value;
+                        lastComputed = computed;
+                    }
+                });
+            }
+        }
+        return result;
+    };
+
+    // 将数组打乱
+    // 如果是对象，则返回一个数组，数组由对象value 值构成
+    // 最优的洗牌算法
+    _.shuffle = function(obj){
+        // 如果是对象，则对 value 值进行乱序
+        var set = isArrayLike(obj) ? obj : _.values(obj);
+        var length = set.length;
+
+        // 乱序后返回的数组副本（参数是对象则返回乱序后的 value 数组）
+        var shuffled = Array(length);
+
+        // 枚举元素
+        for(var index = 0,rand;index < length;index++){
+            // 将当前所枚举位置的元素和 'index = rand '位置的元素交换
+            rand = _.random(0,index);
+            if(rand !== index) shuffled[index] = shuffled[rand];
+            shuffled[rand] = set[index];
+        }
+
+        return shuffled;
+
+    };
+
 
 
 
