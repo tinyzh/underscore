@@ -536,5 +536,55 @@
 
 
 
+    // 返回数组第一个元素
+    // 如果有参数n 则返回数组前N个元素(组成的数组)
+    _.first = _.head = _.take = function(array,n,guard){
+    	// 容错，数组为空则返回undefined
+    	if(array == null) return void 0;
+
+    	// 没指定参数n，则默认返回第一个元素
+    	if(n == null || guard) return array[0];
+
+    	// 如果传入参数n，则返回前n个元素组成的数组
+    	// 返回前n个元素，即剔除后 array.length - n 个元素
+    	return _.initial(array,array.length - n);
+    };
+
+    // 传入一个数组
+    // 返回剔除最后一个元素之后的数组副本
+    // 如果传输参数n 则剔除最后n个元素
+    _.initial = function(array,n,guard){
+    	return slice.call(array,0,Math.max(0,array.length - (n == null || guard ? 1 : n)));
+    };
+
+    // 返回数组最后一个元素
+    // 如果传入参数n 则返回该数组后n个元素组成的数组
+    // 即剔除前array.length - n 个元素
+    _.last = function(array,n,guard){
+
+    	// 容错
+    	if(array == null) return void 0;
+
+    	// 如果没有指定参数n，则返回最后一个元素
+    	if(n == null || guard) return array[array.length - 1];
+
+    	// 如果传入参数n 则返回后n个元素组成的数组
+    	// 即剔除前array.length - 1 个元素
+    	return _.rest(array,Math.max(0,array.length - n));
+    };
+
+    // 传入一个数组
+    // 返回剔除第一个元素后的数组副本
+    // 如果传入参数n 则剔除前n个元素
+    _.rest = _.tail = _.drop = function(array,n,guard){
+    	return slice.call(array,n == null ? 1 : n);
+    }
+
+
+
+
+
+
+
 
 }.call(this));
