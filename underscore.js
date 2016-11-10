@@ -415,6 +415,123 @@
         return _.indexOf(obj,item,fromIndex) >= 0;
     };
 
+    // 随机返回数组或者对象中的一个元素
+    // 如果指定了参数‘n’ 则随机返回n个元素责成的数组
+    // 如果参数是对象 则数组由values 组成
+    _.sample = function(obj,n,guard){
+    	// 随机返回一个元素
+    	if(n == null || guard){
+    		if(!isArrayLike(obj) obj = _.values(obj));
+    		return obj[_.random(obj.length - 1)];
+    	}
+
+    	// 随机返回n个
+    	retrun _.shuffle(obj).slice(0,Math.max(0,n));
+    };
+
+    // 排序
+    _.sortBy = function(obj,iteratee,context){
+    	iteratee = cb(iteratee,context);
+
+    	// 根据指定的key 返回 value 数组
+    	return _.pluck(
+    			_.map(obj,function(value,index,list){
+    				return {
+    					value : value,
+    					index : index,
+    					// 元素经过迭代函数迭代后的值
+    					criteria : iteratee(value,index,list)
+    				};
+    			}).sort(function(left,right){
+    				var a = left.criteria;
+    				var b = right.criteria;
+    				if(a !== b){
+    					if(a > b || a === void 0) return 1;
+    					if(a < b || a === void 0) return -1;
+    				}
+    				return left.index - right.index;
+    			}),'value');
+    };
+
+    // behavior 是一个函数参数
+    // _.groupBy _.indexBy 以及 _.counBy 其实都是对数组元素进行分类
+    // 分类规则就是 behavior 函数
+    _.group = function(behavior){
+    	return function(obj,iteratee,context){
+    		// 返回结果是一个对象
+    		var result = {};
+    		iteratee = cb(iteratee,context);
+
+    		_.each(obj,function(value,index){
+    			// 经过迭代，获取结果值，存为key
+    			var key = iteratee(value,index,obj);
+    			// 按照不同的规则进行分组操作
+    			// 将变量result当做参数传入，能在behavior 中改变该值
+    			behavior(result,value,key);
+    		});
+    		return result;
+    	}
+    };
+
+    // 根据特定规则对数组或者对象中元素进行分组
+    // result 是返回对象
+    // value 是数组元素
+    // key 是迭代后的值
+    _.groupBy = group(function(result,value,key){
+    	if(_.has(result,key))
+    		result[key].push(value);
+    	else result[key] = [value];
+    });
+
+    _.indexBy = group(function(result,value,key){
+    	// key值必须是独一无二的
+    	// 不然后面的会覆盖前面的
+    	// 其它和 _.groupBy 类似
+    	result[key] = value;
+    });
+
+    _.countBy = group(function(result,value,key){
+    	// 不同 key 值元素数量
+    	if(_.has(result,key))
+    		result[key]++;
+    	else result[key] = 1;
+    });
+
+    // 伪数组 -》 数组
+    // 对象 -》 提取value 值 组成数组
+    // 返回数组
+    _.toArray = function(obj){
+    	if(!obj) return [];
+    	//如果是数组，则返回副本数组
+    	if(_.isArray(obj)) return slice.call(obj);
+
+    	// 如果是类数组，则重新构造新的数组
+    	// 是否也可以直接用slice 方法
+    	if(isArrayLike(obj)) return _.map(obj,_.identity);
+
+    	// 如果是对象，则返回values 集合
+    	return _.values(obj);
+    };
+
+    // 如果是数组(类数组) 返回长度 
+    // 如果是对象，返回键值对数量
+    _.size = function(obj){
+    	if(obj == null) return 0;
+    	return isArrayLike(obj) ? obj.length : _.keys(obj).length;
+    };
+
+    // 将数组或者对象中符合条件(predicate)的元素
+    // 和不符合条件的元素(数组为元素，对象为value值)
+    // 分别放入两个数组中
+    // 返回一个数组，数组元素为以上两个数组([[pass array],[fail array]])
+    _.partition = function(obj,predicate,context){
+    	predicate = cb(predicate,context);
+    	var pass = [],fail = [];
+    	_.each(obj,function(value,index,obj){
+    		(predicate(value,key,obj) ? pass : fail).push(value);
+    	});
+    	return [pass,fail];
+    };
 
 
 
