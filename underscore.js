@@ -701,7 +701,59 @@
     // 如果传入参数n 则剔除前n个元素
     _.rest = _.tail = _.drop = function(array,n,guard){
     	return slice.call(array,n == null ? 1 : n);
-    }
+    };
+
+    // 去掉数组中所有的假值
+    // 返回数组副本
+    _.compact = function(array){
+        return _.filter(array, _.identity);
+    };
+
+    // 递归调用数组，将数组展开
+    // 即 [1,2,[3,4]] =》 [1,2,3,4]
+    //
+    var flatten = function(input,shallow,strict,startIndex){
+        // output 数组保存结果
+        // 即 flatten 方法返回数据
+        // idx 为 output 的累积数组下标
+        var output = [],idx = 0;
+
+        for(var i = startIndex || 0,length = getLength(input);i < length;i++){
+            var value = input[i];
+            if(isArrayLike(value) && (_.isArray(value)) || _.isArguments(value)){
+                if(!shallow){
+                    value = flatten(value,shallow,strict);
+                }
+                var j = 0,len = value.length;
+
+                output.length += len;
+
+                while(j < len){
+                    output[idx++] = value[j++];
+                }
+            }else if(!strict){
+                output[idx++] = value;
+            }
+        }
+        return output;
+
+    };
+
+    _.flatten = function(array,shallow){
+        return flatten(array,shallow,false);
+    };
+
+
+    // 从数组中移除指定的元素
+    // 返回移除后的数组副本
+    _.without = function(array){
+        // slice.call(arguments,1)
+        // 将arguments 转为数组(同时去掉第一个元素)
+        // 之后便可以调用 _.difference 方法
+        return _.difference(array,slice.call(arguments,1));
+    };
+
+
 
 
 
