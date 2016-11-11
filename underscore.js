@@ -753,6 +753,90 @@
         return _.difference(array,slice.call(arguments,1));
     };
 
+    // 数组去重
+    // 如果第二个参数 isSorted 为true
+    // 程序会跑一个更快的算法
+    // 如果有地方额参数 iteratee 则对数组每个元素迭代
+    // 对迭代之后的结果进行去重
+    // 范湖去重后数组 array的子数组
+    // 手册中没有提到context参数
+    _.uniq = _.unique = function(array,isSorted,iteratee,context){
+    	// 如果没有传入 isSorted 参数
+    	// 转为 _.unique（array,false,undefined,iteratee）
+    	if(!_.isBoolean(isSorted)){
+    		context = iteratee;
+    		iteratee = isSorted;
+    		isSorted = false;
+    	}
+
+    	// 如果有迭代函数
+    	// 则根据this 指向二次返回新的迭代数函数
+    	if(iteratee != null)
+    		iteratee = cb(iteratee,context);
+
+    	// 结果数组，是array的子集
+    	var result = [];
+
+    	var seen = [];
+
+    	for(var i = 0,length = getLength(array);i < length;i++){
+    		var value = array[i];
+    		// 如果指定了迭代函数
+    		// 则对数组没一个元素进行迭代
+    		// 迭代函数传入的三个参数通常是 value index array 形式
+    		computed = iteratee ? iteratee(value,i,array) : value;
+
+    		// 如果是有序数组，则当前元素只需跟上一个元素对比即可
+    		// 用seen 变量保存上一个元素
+    		if(isSorted){
+    			// 如果i===0 是第一个元素 则直接push
+    			// 否则比较当前元素是否和前一个元素相等
+    			if(!i || seen !== computed) result.push(value);
+    			// seen 保存当前元素， 供下次对比
+    			seen = computed;
+    		}else if(iteratee){
+    			if(!_.contains(seen,computed)){
+    				seen.push(computed);
+    				result.push(value);
+    			}
+    		}else if(!_.contains(result,value)){
+    			result.push(value);
+    		}
+    	}
+    	return result;
+    };
+
+    // 将多个数组的元素几种到一个数组中
+    // 并且去重 返回数组副本
+    _.union = function(){
+    	return _.uniq(flatten(arguments,true,true));
+    };
+
+    // 寻找几个数组中共有的元素
+    // 将这些每个数组中都有元素存入另一个数组中返回
+    // 返回的结果是去重的
+    _.intersection = function(array){
+    	var result = [];
+
+    	var argsLength = arguments.length;
+
+    	for(var i = 0,length = getLength(array);i < length; i++){
+    		var item = array[i];
+    		if(_.contains(result,item)) continue;
+
+    		for(var j = 1;j < argsLength;j++){
+    			if(!_.contains(arguments[j],item))
+    				break;
+    		}
+
+    		if(j === argsLength)
+    			result.push(item);
+    	}
+    	return result;
+    };
+
+
+
 
 
 

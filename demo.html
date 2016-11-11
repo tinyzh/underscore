@@ -7,9 +7,16 @@
 <body>
 	<script src="underscore-1.8.3-analysis.js"></script>
 	<script>
-		var arr = [1,2,3,54,234,23];
-		var res = _.first(arr,2);
-		console.log(res);
+	var res = [];
+	for(var i = 0;i < 3;i++){
+		for (var j = 1; j < 5; j++) {
+        	if(j == 2) break;
+      	}
+      	console.log(j);
+      	res.push(j);
+	}
+		
+      	console.log(res);
 	</script>
 </body>
 </html>
