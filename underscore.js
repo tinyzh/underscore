@@ -835,6 +835,96 @@
     	return result;
     };
 
+    // 剔除array 数组在others数组中出现的元素
+    _.difference = function(array){
+        // 将others数组展开一层
+        // rest[] 保存展开后的元素组成的数组
+        // strict 参数为 true
+        var rest = flatten(arguments,true,true,1);
+
+        // 遍历array 过滤
+        return _.filter(array,function(value){
+            // 如果value存在在rest中，则过滤掉
+            return !_.contains(rest,value);
+        })
+    };
+
+    // 将多个数组中相同位置的元素归类
+    // 返回一个数组
+    _.zip = function(){
+        return _.unzip(arguments);
+    };
+
+    _.unzip = function(array){
+      var length = array && _.max(array,getLength).length || 0;
+      var result = Array(length);// result为5个长度 值全部为undefined的数组
+
+        for(var index = 0;index < length;index++){
+            result[index] = _.pluck(array,index);
+        }
+        return result;
+    };
+
+    // 将数组转化为对象
+    _.object = function(list,valus){
+        var result = {};
+        for(var i = 0,length = getLength(list);i < index;i++){
+           if(values){
+               result[list[i]] = values[i];
+           } else{
+               result[list[i][0]] = list[i][1];
+           }
+        }
+        return result;
+    };
+
+    function createPredicateIndexFinder(dir){
+        return function(array,predicate,context){
+            predicate = cb(predicate,context);
+
+            var length = getLength(array);
+
+            // 根据dir 变量来确定数组遍历的起始位置
+            var index = dir > 0 ? 0 : length -1 ;
+
+            for(;index >= 0 && index < length;index += dir){
+                if(predicate(array[index],index,array))
+                    return index;
+            }
+            return -1;
+        };
+
+    }
+
+    // 从前往后找到数组中 ‘第一个满足条件’ 的元素，并返回下标值
+    // 没找到返回 -1
+    _.findIndex = createPredicateIndexFinder(1);
+
+
+    _.findLastIndex = createPredicateIndexFinder(-1);
+
+    // 二分查找
+    // 将一个元素插入已排序的数组
+    // 返回该插入的位置下标
+    // _.sortedIndex(list,value,[iteratee],[context])
+    _.sortedIndex = function(array,obj,iteratee,context){
+        // 注意cb方法
+        // iteratee为空 || 为String 类型(key 值) 时会返回不同方法
+        iteratee = cb(iteratee,context,1);
+
+        var value = iteratee(obj);
+
+        var low = 0,high = getLength(array);
+
+        while(low < high){
+            var mid = Math.floor((low + high) / 2);
+            if(iteratee(array[mid]) < value)
+                low = mid + 1;
+            else
+                high = mid;
+        }
+        return low;
+    }
 
 
 
