@@ -924,7 +924,175 @@
                 high = mid;
         }
         return low;
+    };
+
+    function createIndexFinder(dir,predicateFind,sortedIndex){
+    	return function(array,item,idx){
+    		var i = 0,length = getLength(array);
+
+    		if(typeof idx == 'number'){
+    			if(dir > 0){
+    				i = idx >= 0 ? idx : Math.max(idx + length,i);
+    			}else{
+    				length = idx >= 0 ? Math.min(idx + 1,length) : idx + length +1;
+    			}
+    		}else if(sortedIndex && idx && length){
+    			idx = sortedIndex(array,item);
+    			return array[idx] === item ? idx : -1;
+    		}
+
+    		if(item !== item){
+    			idx = predicateFind(slice.call(array,i,length),_.isNaN);
+    			return  >= 0 ? idx + i : -1 ;
+    		}
+
+    		for(idx = dir > 0 ? i : length - 1;idx >= 0 && idx < length;idx += dir){
+    			if(array[idx] === item) return idx;
+    		}
+
+    		return -1
+
+
+    	};
     }
+
+    // 找到数组array 中 value 第一次出现的位置
+    // 并返回其下标值
+    // 如果数组有序，则地单个参数可以传入true
+    // 这样算法效率更高(二分查找)
+    // [isSorted] 参数标示数组是否有序
+    // 同时第三个参数也可以表示 [fromIndex]
+    _.indexOf = createIndexFinder(1,_.findIndex,_.sortedIndex);
+
+    // 和上面的相似
+    // 反序查找
+    // [fromIndex] 参数表示从倒数第几个开始往前找
+    _.lastIndexOf = createIndexFinder(-1,_.findLastIndex);
+
+    // 返回某一个范围内的数组组成的数组
+    _.range = function(start,stop,step){
+    	if(stop == null){
+    		stop = start || 0;
+    		start = 0;
+    	}
+
+    	step = step || 1;
+
+    	var length = Math.max(Math.ceil((stop-start) / step),0); // 如果为负数，则取0
+
+    	var range = Array(length);//长度为length 内容全部为undefined
+
+    	for(var idx = 0;idx < length;idx++,start += step){
+    		range[idx] = start;
+    	}
+
+    	return range;
+    };
+
+    var execteBound = function(sourceFunc,boundFunc,context,callingContext,args){
+    	if(!(callingContext instanceof boundFunc))
+    		return sourceFunc.apply(context,args);
+
+    	var self = baseCreate(sourceFunc.prototype);
+
+    	var result = sourceFunc.apply(self,args);
+
+    	if(_.isObject(result)) return result;
+
+    	retrun self;
+    };
+
+    // ES5 bind 方法的扩展
+    // 将func 中的this 指向 context(对象)
+    // _.bind(func,context,*arguments)
+    // 可选的 arguments 参数会被当做 func 的参数传入
+    // func 在调用时，会优先用arguments 参数，然后使用_.bind 返回方法所传入的参数
+    _.bind = function(func,context){
+    	// 如果浏览器支持ES5 bind 方法，并且func上的bind方法没有被重写
+    	// 则优先使用原生的 bind 方法
+    	if(nativeBind && func.bind === nativeBind)
+    		return nativeBind.apply(func,slice.call(arguments,1));
+
+    	// 如果传入的参数 func 不是方法 则抛出异常
+    	if(!_.isFunction(func))
+    		throw new TypeError('Bind must be called on a function');
+
+    	var args = slice.call(arguments,2);
+    	var bound = function(){
+    		return execteBound(func,bound,context,this,args.concat(slice.call(arguments)));
+    	};
+
+    	return bound;
+    };
+
+    _.partial = function(func){
+    	var boundArgs = slice.call(arguments,1);
+
+    	var bound = function(){
+    		var position = 0,length = boundArgs.length;
+    		var args = Array(length);
+    		for(var i = 0;i<length;i++){
+    			args[i] = boundArgs[i] === _ ? arguments[position++] : boundArgs[i];
+    		}
+
+    		while(position < arguments.length)
+    			args.push(artuments[position++]);
+
+    		return execteBound(func,bound,this,this,args);
+    	};
+    	return bound;
+    };
+
+    _.bindAll = function(obj){
+    	var i, length = arguments.length,key;
+
+    	if(length <= 1)
+    		throw new Error('bindAll must be passed function names');
+
+		for(i = 1;i < length;i++){
+			key = arguments[i];
+			obj[key] = _.bind(obj[key],obj);
+		}
+
+		return obj;
+    	
+    };
+
+    // 【记忆化】 存储中间运算结果 提高效率
+    // 参数hasher是个function 用来计算key
+    // 如果传入了hasher 则用hasher 来计算key
+    // 否则用key参数直接当key
+    _.memoize = function(func,hasher){
+    	var memoize = function(key){
+    		var cache = memoize.cache;
+
+    		var address = '' + (hasher ? hasher.apply(this,arguments) : key);
+
+    		if(!_.has(cache,address))
+    			cache[address] = func.apply(this,arguments);
+
+    		return cache[address];
+    	};
+
+    	memoize.cache = {};
+
+    	return memoize;
+    };
+
+    // 延迟触发某方法
+    // 如果传入了arguments 参数 则会被当做func的参数在触发时调用
+    // _.delay(function,wait,*arguments)
+    // 其实是封装了 延迟触发某方法 
+    _.delay = function(func,wait){
+    	var args = slice.call(arguments,2);
+    	return setTimeout(function(){
+    		retrun func.apply(null,args);
+    	},wait);
+    };
+
+    _.defer = _.partial(_.delay,_,1);
+
+
 
 
 

@@ -7,16 +7,16 @@
 <body>
 	<script src="underscore-1.8.3-analysis.js"></script>
 	<script>
-	var res = [];
-	for(var i = 0;i < 3;i++){
-		for (var j = 1; j < 5; j++) {
-        	if(j == 2) break;
-      	}
-      	console.log(j);
-      	res.push(j);
+	var name = 123;
+	var obj = {
+		name : 'zc'
 	}
+	function demo1(){
+		console.log(this.name)
+	}
+	demo1 = _.bind(demo1,obj);
 		
-      	console.log(res);
+      	demo1();
 	</script>
 </body>
 </html>
