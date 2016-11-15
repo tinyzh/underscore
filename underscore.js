@@ -1092,94 +1092,183 @@
 
     _.defer = _.partial(_.delay,_,1);
 
-    // 函数节流（如果有连续事件响应，则每间隔一定时间段触发）
-    // 每间隔 wait 触发一次func 方法
-    // 如果options 参数传入 {leading:false}
-    // 那么不会马上触发(等待 wait 后第一次触发 func)
-    // 如果options 参数传入{trailing:false}
-    // 那么最后一次回调不会被触发
-    // options 不能同时设置 leading 和 trailing 为false
-    // 使用 var throttled = _.throttle(func,100)
     _.throttle = function(func,wait,options){
-    	var context,args,result;
+        var context,args,result;
 
-    	// setTimeout 的 handler
-    	var timeout = null;
+        var timeout = null;
 
-    	// 标记时间戳
-    	// 上一次执行回调的时间戳
-    	var previous = 0;
+        var previous = 0;
 
-    	options = options || {};
+        if(!options)
+            options = {};
 
-    	var later = function(){
-    		// 如果options.leading === false
-    		// 则每次触发回调后将 previous 置为0
-    		// 否则置为当前时间戳
-    		previous = options.leading === false ? 0 : _.now();
-    		timeout = null;
-    		result = func.apply(context,args);
+        var later = function(){
+            previous = options.leading === false ? 0 : _.now();
+            timeout = null;
+            result = func.apply(context,args);
+
+            if(!timeout)
+                context = args = null;
+        };
+
+        return function(){
+            var now = _.now();
+            if(!previous && options.leading === false)
+                previous = now;
+
+            var remaining = wait - (now - previous);
+            context = this;
+            args = arguments;
+
+            if(remaining <= 0 || remaining > wait){
+                if(timeout){
+                    clearTimeout(timeout);
+                    timeout = null;
+                }
+
+                previous = now;
+
+                result = func.apply(context,args);
+                if(!timeout)
+                    context = args = null;
+            }else if(!timeout && options.trailing !== false){
+                timeout = setTimeout(later,remaining);
+            }
+            return result;
+
+        }
+    };
+
+    // 函数去抖（连续事件触发结束后只触发一次）
+    // ex1:_debounce(func(){},1000)
+    // 连续事件结束后1000ms后触发
+    // ex2: _.debounce(function(){},1000,true)
+    // 连续事件触发后立即触发(此时会忽略第二个参数)
+    _.debounce = function(func,wait,immediate){
+        var timeout,args,context,timestamp,result;
+
+        var later = function(){
+            // 定时器设置的回调later方法的触发时间，和连续事件触发的最后一次时间戳的间隔
+            // 如果间隔为 wait （或刚好大于wait）则触发事件
+            var last = _.now() - timestamp;
+
+            // 时间间隔 last 在[0,wait]中
+            // 还没到触发的点，则继续设置定时器
+            // last 值应该不会小于0
+            if(last < wait && last >= 0){
+                timeout = setTimeout(later,wait-last);
+            }else{
+                // 到了可以触发的时间点
+                timeout = null;
+
+                // 可以触发了
+                // 并且不是设置为立即触发的
+                // 因为如果是立即触发(callNow) 也会进入这个回调中
+                // 主要是为了将 timeout 值置为空,使之不影响下次连续事件的触发
+                // 如果不是立即执行，则立即执行 func 方法
+                if(!immediate){
+                    // 执行 func 函数
+                    result = func.apply(context,args);
+
+                    if(!timeout)
+                        context = args = null;
+                }
+            }
+        };
+
+        // 闭包返回的函数，是可以传入参数的
+        // 也是 DOM 事件所触发的回调函数
+        return function(){
+            // 可以指定 this 指向
+            context = this;
+            args = arguments;
+
+            // 每次触发函数，更新事件戳
+            // later方法中取last值时用到该变量
+            // 判断距离上次触发事件是否已经过了 wait seconds 了
+            // 即我们需要距离最后一次事件触发 wait seconds 后触发这个回调方法
+            timestamp = _.now();
+
+            var callNow = immediate && !timeout;
+
+            if(!timeout)
+                timeout = setTimeout(later,wait);
+
+            if(callNow){
+                result = func.apply(context,args);
+                context = args = null;
+            }
+
+            return result;
+        }
 
 
-    		if(!timeout)
-    			context = args = null;
-    	};
-
-    	return function(){
-    		// 记录当前时间戳
-    		var now = _.now();
-
-    		// 第一次执行回调(此时previous为0，之后previous值为上一次时间戳)
-    		// 并且如果程序设定第一个回调不是立即执行的(options.leading === false)
-    		// 则将previous值（表示上次执行的时间戳）设为now的时间戳(第一次触发时)
-    		// 表示刚执行过，这次就不用执行了
-    		if(!previous && options.leading === false)
-    			previous = now;
-
-    		// 距离下次触发func还需要等待的时间
-    		var remaining = wait - (now - previous);
-    		context = this;
-    		args = arguments;
-
-    		// 要么是到了间隔时间了，随即触发方法(remaining <= 0)
-    		// 要么是没有传入{leading:false},且第一次触发回调，即立即触发
-    		// 此时 previous 为0 wait - (now - previous) 也满足 <= 0
-    		// 之后便会把 previous 值迅速置为0
-    		// remaining > wait 表示客户端系统时间被调整过
-    		// 则马上执行 func 函数
-    		if(remaining <= 0 || remaining > wait){
-    			if(timeout){
-    				clearTimeout(timeout);
-    				// 解除引用 防止内存泄漏
-    				timeout = null;
-    			}
-
-    			// 重置前一次触发的时间戳
-    			previous = now;
-
-    			// 触发方法
-    			// result 为该方法返回值
-    			result = func.apply(context,args);
-
-
-    			if(!timeout)
-    				context = args = null;
-    		}else if(!timeout && options.trailing === false){ // 最后一次需要触发的情况
-    			// 如果已经存在一个定时器，则不会进入该if分支
-    			// 如果{trailing:false} 即最后一次不需要触发了，也不会进入这个分支
-    			timeout = setTimeout(later,remaining);
-    		}
-
-    		// 回调返回值
-    		return result;
-    	};
 
     };
 
+    _.wrap = function(func,wrapper){
+        return _.partial(wrapper,func);
+    };
 
+    // 返回一个 predicate 方法的对立方法
+    // 即该方法可以对原来的 predicate 迭代结果值取补集
+    _.negate = function(predicate){
+        return function(){
+            return !predicate.apply(this,arguments);
+        };
+    };
 
+    _.compost = function(){
+        var args = arguments;
+        var start = args.length - 1;
+        return function(){
+            var i = start;
+            var result = args[start].apply(this,arguments);
+            while(i--){
+                result = args[i].call(this,result);
+                return result;
+            }
 
+        }
+    };
 
+    // 使得某函数被调用一定次数后才开始执行
+    // _.after 会返回一个函数
+    // 当这个函数第times 被执行的时候
+    // 触发func 方法
+    _.after = function(times,func){
+        return function(){
+            if(--times < 1){
+                return func.apply(this,arguments);
+            }
+        }
+    };
+
+    // 函数至多被调用times - 1 次
+    _.before = function(times,func){
+        var memo;
+        return function(){
+            if(--times > 0){
+                memo = func.apply(this,arguments);
+            }
+
+            if(times <= 1){
+                func = null;
+            }
+
+            return memo;
+        }
+    };
+
+    // 函数至多只能被调用一次
+    _.once = _.partial(_.before,2);
+
+    var hasEnumBug = !{toString:null}.propertyIsEnumerable('toString');
+
+    var nonEnumerableProps = ['valueOf', 'isPrototypeOf', 'toString',
+        'propertyIsEnumerable', 'hasOwnProperty', 'toLocaleString'];
+
+    
 
 
 
