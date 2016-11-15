@@ -3,20 +3,29 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Document</title>
+	<style>
+		body{height: 3000px;}
+	</style>
 </head>
 <body>
 	<script src="underscore-1.8.3-analysis.js"></script>
+	<script src="http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
 	<script>
-	var name = 123;
-	var obj = {
-		name : 'zc'
-	}
-	function demo1(){
-		console.log(this.name)
-	}
-	demo1 = _.bind(demo1,obj);
-		
-      	demo1();
+	$(function(){
+		var cons = (function(){
+		var num = 0;
+		return function(){
+			console.log(num);
+			num++;
+		}
+	})();
+
+	var throttled = _.throttle(cons,300);
+
+	$(window).scroll(throttled);
+	
+	})
+	
 	</script>
 </body>
 </html>
