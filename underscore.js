@@ -1268,7 +1268,198 @@
     var nonEnumerableProps = ['valueOf', 'isPrototypeOf', 'toString',
         'propertyIsEnumerable', 'hasOwnProperty', 'toLocaleString'];
 
-    
+    // obj为需要遍历键值对的对象
+    // keys为键数组
+    // 利用javascript按值传递的特点
+    // 传入数组作为参数，能直接改变数组的值
+    function collecNonEnumpros(obj,keys){
+        var nonEnumIdx = nonEnumerableProps.length;
+        var constructor = obj.constructor;
+
+        // 获取对象的原型
+        // 如果 obj 的 constructor 被重写
+        // 则 proto 变量为 Object.prototype
+        // 如果没有被重写 则为obj.constructor.prototype
+        var proto = (_.isFunction(constructor) && constructor.prototype) || ObjProto;
+        var prop = 'constructor';
+        if(_.has(obj,prop) && !_.contains(keys,prop)) keys.push(prop);
+
+        while(nonEnumIdx--){
+            prop = nonEnumerableProps[nonEnumIdx];
+            if(prop in obj && obj[prop] !== proto[prop] && !_.contains(keys,prop)){
+                keys.push(prop);
+            }
+        }
+
+    }
+
+    // 返回一个对象的keys组成的数组
+    // 仅返回自己可供枚举组成的数组
+    _.keys = function(obj){
+        if(!_.isObject(obj)) return [];
+        if(nativeKeys) return nativeKeys(obj);
+
+        var keys = [];
+
+        for(var key in obj){
+            if(_.has(obj,key)) keys.push(key);
+        }
+
+        if(hasEnumBug) collecNonEnumpros(obj,keys);
+
+        return keys;
+    };
+
+    _.allKeys = function(obj){
+        if(!_.isObject(obj)) return [];
+
+        var keys = [];
+        for(var key in obj) keys.push[key];
+
+        if(hasEnumBug) collecNonEnumpros(obj,keys);
+
+        return keys;
+    };
+
+    // 讲一个对象的所有values值放入数组中
+    // 仅限 own properties 上的 values
+    // 不包括原型链上的
+    // 返回数组
+    _.values = function(obj){
+        var keys = _.keys(obj);
+        var length = keys.length;
+        var values = Array(length);
+        for(var i = 0; i < length; i++){
+            values[i] = obj[keys[i]];
+        }
+        return values;
+    };
+
+    // 和 _.map() 方法很想
+    // 但是是专门为对象服务的map方法
+    // 迭代函数改变对象的 values 值
+    // 返回对象副本
+    _.mapObject = function(obj,iteratee,context){
+        iteratee = cb(iteratee,context);
+
+        var keys = _.keys(obj),
+            length = keys.length,
+            results = {},// 对象副本，该方法返回的对象
+            currentKey;
+
+        for(var index = 0 ; index < length ; index++){
+            currentKey = keys[index];
+            results[currentKey] = iteratee(obj[currentKey],currentKey,obj);
+        }
+        return results;
+    };
+
+    _.pairs = function(obj){
+        var keys = _.keys(obj);
+        var length = keys.length;
+        var pairs = Array(length);
+        for(var i = 0; i < length; i++){
+            pairs[i] = [key[i],obj[keys[i]]];
+        }
+        return pairs;
+    };
+
+    // 将一个对象的 key-value 键值对颠倒
+    // 需要注意的是，value值不能重复(不然后面的会覆盖前面的)
+    // 且新构造的对象符合对象构造规则
+    // 并且返回新构造的对象
+    _.invert = function(obj){
+        var result = {};
+        var keys = _.keys(obj);
+        for(var i = 0; i < keys.length; i++){
+            result[obj[keys[i]]] = keys[i];
+        }
+        return result;
+    };
+
+    // 传入一个对象
+    // 遍历该对象的键值对(包括 own properties 以及 原型链上的)
+    // 如果某个value 的类型是方法，则将该key存入数组
+    // 将该数组排序后返回
+    _.functions = _.methods = function(obj){
+        var names = [];
+
+        for(var key in obj){
+            if(!_.isFunction(obj[key])) names.push(key);
+        }
+        return names.sort();
+
+    };
+
+    _.extend = createAssigner(_.allKeys);
+
+    _.extendOwn = _.assign = createAssigner(_.keys);
+
+    _.findKey = function(obj,predicate,context){
+        predicate = cb(predicate,context);
+        var keys = _.keys(obj),key;
+        for(var i = 0, length = keys.length;i< length;i++){
+            keys = keys[i];
+            if(predicate(obj[key],key,obj)) return key;
+        }
+    };
+
+    // 根据一定的需求(key 值，或者通过 predicate 函数返回真假)
+    // 返回拥有一定键值对的对象副本
+    // 第二个参数可以是一个predicate 函数
+    // 也可以是 >= 0 个 key
+    _.pick = function(object,oiteratee,context){
+        var result = {},obj = obj,iteratee,keys;
+        if(obj == null) return result;
+
+        if(_.isFunction(oiteratee)){
+            keys = _.allKeys(obj);
+            iteratee = optimizeCb(oiteratee,context);
+        }else{
+            keys = flatten(arguments,false,false,1);
+
+            iteratee = function(value,key,obj){return key in obj;}
+            obj = Object(obj);
+        }
+
+        for(var i = 0, length = keys.length; i < length; i++){
+            var key = keys[i];
+            var value = obj[key];
+            if(iteratee(value,key,obj)) result[key] = value;
+        }
+        return result;
+
+
+    };
+
+    _.omit = function(obj,iteratee,context){
+        if(_.isFunction(obj)){
+            iteratee = _.negate(iteratee);
+        }else{
+            var keys = _.map(flatten(arguments,false,false,1),String);
+            iteratee = function(value,key){
+                return !_.contains(keys,key);
+            };
+        }
+        return _.pick(obj,iteratee,context);
+    };
+
+    _.defaults = createAssigner(_.allKeys,true);
+
+    _.create = function(prototype,props){
+        var result = baseCreate(prototype);
+
+        if(props) _.extendOwn(result,props);
+        return result;
+    };
+
+    _.clone = function(obj){
+        if(!_.isObject(obj)){
+            return obj;
+        }
+        return _.isArray(obj) ? obj.slice() : _.extend({},obj);
+    }
+
 
 
 
