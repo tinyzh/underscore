@@ -1458,7 +1458,173 @@
             return obj;
         }
         return _.isArray(obj) ? obj.slice() : _.extend({},obj);
+    };
+
+    _.tap = function(obj,interceptor){
+        interceptor(obj);
+        return obj;
+    };
+
+    // 判断object对象中是否有 attrs 中的所有 key-value 键值对
+    // 返回布尔值
+    _.isMatch = function(object,attrs){
+        var keys = _.keys(attrs),length = keys.length;
+
+        if(object == null) return !length;
+        var obj = Object(object);
+
+        for(var i = 0; i < length; i++){
+            var key = keys[i];
+            if(attrs[key] !== obj[key] || !(key in obj)) return false;
+        }
+        return true;
+    };
+
+    var eq = function(a,b,aStack,bStack){
+        if(a === b) return a !== 0 || 1 / a === 1 / b;
+
+        if(a == null || b == null) return a === b;
+
+        if(a instanceof _) a = a._wrapped;
+        if(b instanceof _) b = b._wrapped;
+
+        var className = toString.call(a);
+        if(className !== toString.call(b)) return false;
+
+        switch(className){
+            case '[object RegExp]':
+            case '[object String]':
+                return '' + a === '' + b;
+            case '[object Number]':
+                if(+a !== +a) return +b !== +b;
+
+                return +a === 0 ? 1 / +a === 1 / b : +a === +b;
+            case '[object Date]':
+            case '[object Boolean]':
+                return +a === +b;
+        }
+
+        var areArrays = className === '[object Array]';
+
+        if(!areArrays){
+            if(typeof a != 'object' || typeof b != 'object') return false;
+
+            var aCtor = a.constructor,bCtor = b.constructor;
+            if (aCtor !== bCtor && !(_.isFunction(aCtor) && aCtor instanceof aCtor &&
+                _.isFunction(bCtor) && bCtor instanceof bCtor)
+                && ('constructor' in a && 'constructor' in b)) {
+                return false;
+            }
+        }
+
+        aStack = aStack || [];
+        bStack = bStack || [];
+
+        var length = aStack.length;
+
+        while(length--){
+            if(aStack[length] === a) return bStack[length] === b;
+        }
+
+        aStack.push(a);
+        bStack.push(b);
+
+        if(areArrays){
+            length = a.length;
+
+            if(length != b.length) return false;
+
+            while(length--){
+                if(!eq(a[length],b[length],aStack,bStack)) return false;
+            }
+        }else{
+            var keys = _.keys(a),key;
+            length = keys.length;
+
+            if(_.keys(b).length !== length) return false;
+
+            while(length--){
+                key = keys[length];
+                if(!(_.has(b,key) && eq(a[key],b[key],aStack,bStack))) return false;
+            }
+        }
+
+        aStack.pop();
+        bStack.pop();
+
+        return true;
+
+    };
+
+    _.isEqual = function(a,b){
+        return eq(a,b);
+    };
+
+    _.isEmpty = function(obj){
+        if(obj == null) return true;
+
+        if(isArrayLike(obj) && (_.isArray(obj) || _.isString(obj) || isArguments(obj))) return obj.length === 0;
+
+        return _.keys(obj).length === 0;
+    };
+
+    _.isElement = function(obj){
+        return !!(obj && obj.nodeType === 1);
+    };
+
+    _.isArray = nativeIsArray || function(obj){
+        return toString.call(obj) === '[object Array]';
+    };
+
+    _.isObject = function(obj){
+        var type = typeof obj;
+        return type === 'function' || type === 'object' && !!obj;
+    };
+
+    _.each(['Arguments','Function','String','Number','Date','RegExp','Error'],function(name){
+        _['is' + name] = function(obj){
+            return toString.call(obj) == '[object ' + name + ']';
+        }
+    });
+
+    if(!_.isArguments(arguments)){
+        _.isArguments = function(obj){
+            return _.has(obj,'callee');
+        };
     }
+
+    if (typeof /./ != 'function' && typeof Int8Array != 'object') {
+        _.isFunction = function(obj) {
+            return typeof obj == 'function' || false;
+        };
+    }
+
+    _.isFinite = function(obj){
+        return isFinite(obj) && !isNaN(parseFloat(obj));
+    };
+
+    _.isNaN = function(obj){
+        return _.isNumber(obj) && obj !== +obj;
+    };
+
+    _.isBoolean = function(obj){
+        return obj === true || obj === false || toString.call(obj) === '[object Boolean]';
+    };
+
+    _.isNull = function(obj){
+        return obj === null;
+    };
+
+    _.isUndefined = function(obj){
+        return obj === void 0;
+    };
+
+    _.has = function(obj,key){
+        return obj != null && hasOwnProperty.call(obj,key);
+    };
+
+
+
 
 
 
