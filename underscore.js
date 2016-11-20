@@ -1623,6 +1623,259 @@
         return obj != null && hasOwnProperty.call(obj,key);
     };
 
+    _.noConflict = function(){
+        root._ = previousUnderscore;
+        return this;
+    };
+
+    _.identity = function(value){
+        return value;
+    };
+
+    _.constant = function(value){
+        return function(){
+            return value;
+        };
+    };
+
+    _.noop = function(){};
+
+    _.property = property;
+
+    _.propertyOf = function(obj){
+        return obj == null ? function(){} : function(key){
+            return obj[key];
+        }
+    };
+
+    _.matcher = _.matches = function(attrs){
+        attrs = _.extendOwn({},attrs);
+        return function(obj){
+            return _.isMatch(obj,attrs);
+        }
+    };
+
+    _.times = function(n,iteratee,context){
+        var accum = Array(Math.max(0,n));
+        iteratee = optimizeCb(iteratee,context,1);
+        for(var i = 0; i < n;i++){
+            accum[i] = iteratee(i);
+        }
+        return accum;
+    };
+
+    _.random = function(min,max){
+        if(max == null) {
+            max = min;
+            min = 0;
+        }
+        return min + Math.floor(Math.random() * (max - min + 1));
+    };
+
+    _.now = Date.now || function(){
+        return new Date().getTime();
+    };
+
+    var escapeMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        // 以上四个为最常用的字符实体
+        // 也是仅有的可以在所有环境下使用的实体字符（其他应该用「实体数字」，如下）
+        // 浏览器也许并不支持所有实体名称（对实体数字的支持却很好）
+        "'": '&#x27;',
+        '`': '&#x60;'
+    };
+
+    var unescapeMap = _.invert(escapeMap);
+
+    var createEscaper = function(map) {
+        var escaper = function(match) {
+            return map[match];
+        };
+
+        // Regexes for identifying a key that needs to be escaped
+        // 正则替换
+        // 注意下 ?:
+        var source = '(?:' + _.keys(map).join('|') + ')';
+
+        // 正则 pattern
+        var testRegexp = RegExp(source);
+
+        // 全局替换
+        var replaceRegexp = RegExp(source, 'g');
+        return function(string) {
+            string = string == null ? '' : '' + string;
+            return testRegexp.test(string) ? string.replace(replaceRegexp, escaper) : string;
+        };
+    };
+
+    _.escape = createEscaper(escapeMap);
+
+    _.result = function(object,property,fallback){
+        var value = object == null ? void 0 : object[property];
+        if(value === void 0){
+            value = fallback;
+        }
+        return _.isFunction(value) ? value.call(object) : value;
+    };
+
+    var idCounter = 0;
+    _.uniqueId = function(prefix){
+        var id = ++idCounter + '';
+        return prefix ? prefix + id : id;
+    };
+
+    _.templateSettings = {
+        evaluate    : /<%([\s\S]+?)%>/g,
+        interpolate : /<%=([\s\S]+?)%>/g,
+        escape      : /<%-([\s\S]+?)%>/g
+    };
+
+    var noMatch = /(.)^/;
+
+    var escapes = {
+        "'":      "'",
+        '\\':     '\\',
+        '\r':     'r',  // 回车符
+        '\n':     'n',  // 换行符
+        // http://stackoverflow.com/questions/16686687/json-stringify-and-u2028-u2029-check
+        '\u2028': 'u2028', // Line separator
+        '\u2029': 'u2029'  // Paragraph separator
+    };
+
+    var escaper = /\\|'|\r|\n|\u2028|\u2029/g;
+
+    var escaoeChar = function(march){
+        return '\\' + escapes[match];
+    };
+
+    _.template = function(text,settings,oldSettings){
+        if(!settings && oldSettings);
+            settings = oldSettings;
+
+        settings = _.defaults({},settings, _.templateSettings);
+
+        var matcher = RegExp([
+            (settings.escape || noMatch).source,
+            (settings.interpolate || noMatch).source,
+            (settings.evaluate || noMatch).source
+        ].join('|') + '|$','g');
+
+        var index = 0;
+        var source = "__p+='";
+
+        text.replace(matcher,function(match,escape,interpolate,evaluate,offset){
+            source += text.slice(index,offset).replace(escaper,escapeChar);
+            index = offset + match.length;
+
+            if(escape){
+                source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
+            }else if(interpolate){
+                source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+            }else if(evaluate){
+                source += "';\n" + evaluate + "\n__p+='";
+            }
+            return match;
+        });
+
+        source += "':\n";
+
+        if(!settings.variable){
+            source = 'with(obj||{}){\n' + source + '}\n';
+        }
+
+        source = "var __t,__p='',__j=Array.prototype.join," +
+        "print=function(){__p+=__j.call(arguments,'');};\n" +
+        source + 'return __p;\n';
+
+        try {
+            // render 方法，前两个参数为 render 方法的参数
+            // obj 为传入的 JSON 对象，传入 _ 参数使得函数内部能用 Underscore 的函数
+            var render = new Function(settings.variable || 'obj', '_', source);
+        } catch (e) {
+            // 抛出错误
+            e.source = source;
+            throw e;
+        }
+
+        var template = function(data){
+            return render.call(this,data,_);
+        };
+
+        var argument = settings.variable || 'obj';
+
+        template.source = 'function('+ argument +'){\n' + source + '}';
+
+        return template;
+
+    };
+
+    _.chain = function(obj){
+        var instance = _(obj);
+
+        instance._chain = true;
+
+        return instance;
+    };
+
+    var result = function(instance,obj){
+        return instance._chain ? _(obj).chain() : obj;
+    };
+
+    _.mixin = function(obj){
+        _.each(_.functions(obj),function(name){
+            var func = _[name] = obj[name];
+
+            _.prototype[name] = function(){
+                var args = [this._wrapped];
+
+                push.apply(args,arguments);
+
+                return result(this,func.apply(_,args));
+            };
+        });
+    };
+
+    _.mixin(_);
+
+    _.each(['pop','push','reverse','shift','sort','splice','unshift'],function(name){
+        var method = ArrayProto[name];
+        _.prototype[name] = function(){
+            var obj = this._wrapped;
+            method.apply(obj,arguments);
+
+            if((name === 'shift' || name === 'splice') && obj.length === 0)
+                delate obj[0];
+
+            return result(this,obj);
+        };
+    });
+
+    _.each(['concat','join','slice'],function(name){
+        var method = ArrayProto[name];
+        _.prototype[name] = function(){
+            retrun result(this,method.apply(this._wrapped,arguments));
+        };
+    });
+
+    _.prototype.value = function(){
+        return '' + this._wrapped;
+    };
+
+    _.prototype.valueOf = _.prototype.toJSON = _.prototype.value;
+
+    _.prototype.toString = function(){
+        return '' + this._wrapped;
+    };
+
+    if(typeof define === 'function' && define.amd){
+        define('underscore',[],function(){
+            return _;
+        });
+    }
+
 
 
 
