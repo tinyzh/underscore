@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script src="zepto.js"></script>
+	<script>
+		function n(str){
+			return str.replace(/-+(.)?/g,function(match,chr){
+				// console.log(chr.toUpperCase());
+				console.log(match);
+				// return chr ? chr.toUpperCase() : '';
+			})
+		}
+	</script>
+</body>
+</html>
