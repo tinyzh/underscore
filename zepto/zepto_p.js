@@ -154,6 +154,181 @@ var Zepto = (function(){
 					.toLowerCase()
 		}
 
+		uniq = function(array){
+			return filter.call(array,function(item,idx){
+				return array.indexOf(item) == idx
+			});
+		}
+
+		function classRE(name){
+			return name in classCache ?
+				classCache[name] :
+				(classCache[name] = new RegExp('(^|\\s)' + name + '(\\s|$)'))
+		}
+
+
+		// 传入一个css的name和value，判断这个value 是否需要增加 'px'
+		function maybeAddPx(name,value){
+			return (typeof value == 'number' && !cssNumber[dasherize(name)]) ? value + 'px' : value
+		}
+
+		//获取一个元素的默认display样式值，可能的结果是： inline block inline-block table (none 转换为 block)
+		function defaultDisplay(nodeName){
+			var element , display
+
+			if(!elementDisplay[nodeName]){
+				element = document.createElement(nodeName);
+				document.body.appendChild(element);
+				display = getComputedStyle(element,'').getPropertyValue('display');
+
+				element.parentNode.removeChild(element);
+				display = 'none' && (display = 'block')
+				elementDisplay[nodeName] = display
+			}
+
+			return elementDisplay[nodeName]
+		}
+
+		// 返回一个元素的子元素，数组形式
+		function children(element){
+			// 有些浏览器支持elem.children 获取子元素，有些不支持
+			return 'children' in element ? 
+				//将对象数组转换为真数组
+				slice.call(element.children) : 
+				$.map(element.childNodes,function(node){
+					if(node.nodeType == 1) return node
+				})
+		}
+
+		zepto.fragment = function(html,name,properties){
+			var dom, nodes, containers
+
+			// 如果html是单标签，则直接用该标签创建元素
+			if(singleTagRE.test(html)) dom = $(document.createElement(RegExp.$1))
+
+			if(!dom){
+				if(html.replace) html = html.replace(tagExpanderRE,'<$1></$2>');
+
+				if(name === undefined) name = fragmentRE.test(html) && RegExp.$1
+
+				if(!(name in containers)) name = '*';
+
+				containers = containers[name];
+				containers.innerHTML = '' + html;//转换为字符串的快捷方式
+
+				dom = $.each(slice.call(containers.childNodes),function(){
+					containers.removeChile(this);
+				})
+			}
+
+			if(isPlainObject(properties)){
+				nodes = $(dom);
+				$.each(properties,function(key,value){
+					if(methodAttributes.indexOf(key) > -1){
+						nodes[key](value);
+					}else{
+						nodes.attr(key,value)
+					}
+				})
+			}
+
+			return dom
+		}
+
+		zepto.Z = function(dom,selector){
+			dom = dom || [];
+			dom.__proto__ = $.fn;
+			dom.selector = selector || '';
+			return dom;
+		}
+
+		zepto.isZ = function(object){
+			return object instanceof zepto.Z;
+		}
+
+		zepto.init = function(selector,context){
+			var dom;
+			if(!selector) return zepto.Z;
+			else if(typeof selector == 'string'){
+				selector == selector.trim();
+				if(selector[0] == '<' && fragmentRE.test(selector)){
+					dom = zepto.fragment(selector,RegExp.$1,context), selector = null;
+				}else if(context !== undefined){
+					return $(context).find(selector);
+				}else{
+					dom = zepto.qsa(document,selector);
+				}
+			}else if(isFunction(selector)){
+				return $(document).ready(selector);
+			}else if(zepto.isZ(selector)){
+				return selector;
+			}else{
+				if(isArray(selector)){
+					dom = compact(selector);
+				}else if(isObject(selector)){
+					dom = [selector],selector = null;
+				}else if(fragmentRE.test(selector)){
+					dom = zepto.fragment(selector.trim(),RegExp.$1,context),selector = null;
+				}else if(context !== undefined){
+					return $(context).find(selector);
+				}else{
+					dom = zepto.qsa(document,selector)
+				}
+			}
+
+			return zepto.Z(dom,selector)
+		}
+
+		$ = function(selector,context){
+			return zepto.init(selector,context)
+		}
+
+		function extend(target,source,deep){
+			for(var key in source){
+				if(deep && (isPlainObject(cource[key]) || isArray(source[key]))){
+					if(isPlainObject(source[key]) && !isPlainObject(target[key])){
+						target[key] = {}
+					}
+					if(isArray(source[key]) && !isArray(target[key])){
+						target[key] = [];
+					}
+					extend(target[key],source[key],deep);
+				}else if(source[key] !== undefined){
+					target[key] = source[key]
+				}
+			}
+
+		}
+
+		$.extend = function(target){
+			var deep, args = slice.call(arguments,1);
+			if(typeof target == 'boolean'){
+				deep = target
+				target = args.shift();
+			}
+
+			args.forEach(function(arg){
+				extend(target,arg,deep)
+			})
+			return target;
+		}
+
+		zepto.qsa = function(element,selector){
+			var found,
+				maybeID = selector[0] == '#',
+				maybeClass = !maybeID && selector[0] == '.',
+				nameOnly = maybeID || maybeClass ? selector.slice(1) : selector
+				isSimple = simpleSelectorRE.test(nameOnly);
+
+			return (isDocument(element) && isSimple && maybeID) ?
+				((found = element.getElementById(nameOnly)) ?
+					[found] :
+					[]
+				)
+
+
+
+		}
 
 
 
