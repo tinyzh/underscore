@@ -324,10 +324,130 @@ var Zepto = (function(){
 				((found = element.getElementById(nameOnly)) ?
 					[found] :
 					[]
+				) :
+				(element.nodeType !== 1 && element.nodeType !== 9) ?
+					[] :
+					slice.call(
+						isSimple && !maybeID
+						?
+						maybeClass ?
+							element.getElementsByClassName(nameOnly) :
+							element.getElementByTagName(selector)
+						:
+						element.querySelectorAll(selector)	
+					)
+
+
+		}
+
+		function filtered(nodes,selector){
+			return selector == null ? $(nodes) : $(nodes).filter(selector);
+		}
+
+		$.contains = document.documentElement.contains ? 
+			function(parent,node){
+				return parent !== node && parent.contains(node)
+			} :
+			function(parent,node){
+				while(node && (node = node.parentNode))
+					if(node === parent) return true
+				return false
+			}	
+
+		function funcArg(context.arg,idx,payload){
+			return isFunction(args) ? arg.call(context,idx,payload) : arg
+		}
+
+		function setAttribute(node,name,value){
+			value == null ? node.removeAttribute(name) : node.setAttribute(name,value)
+		}
+
+		function className(node,value){
+			var klass = node.className || '',
+				svg = klass && klass.baseVal !== undefined;
+
+			if(value === undefined) return svg ? klass.baseVal : klass;
+
+			svg ? (klass.baseVal = value) : (node.className = value)
+		}
+
+		function deserializeValue(value){
+			try{
+				return value ?
+				value == 'true' || 
+				(
+					value == 'false' ? false :
+						value == 'null' ? null :
+							+value + '' == value ? +value :
+								/^[\[\{]/.test(value) ? $.parseJSON(value) :
+									value
 				)
+				:value
+			}catch(e){
+				return value
+			}
+		}
 
+		$.type = type;
+		$.isFunction = isFunction;
+		$.isWindow = isWindow;
+		$.isArray = isArray;
+		$.isPlainObject = isPlainObject;
 
+		$.isEmptyObject = function(obj){
+			var name;
+			for(name in obj) return false
+			return true
+		};
 
+		$.inArray = function(elem,array,i){
+			return emptyArray.indexOf.call(array,elem,i);
+		}
+
+		$.camelCase = camelize;
+		$.trim = function(str){
+			return str == null ? '' : String.prototype.trim.call(str)
+		}
+
+		$.uuid = 0;
+		$.support = { };
+		$.expr = { };
+
+		$.map = function(elements,callback){
+			var value, values = [], i, key;
+
+			if(likeArray(elements)){
+				for(i  = 0; i < elements.length; i++){
+					value = callback(elements[i],i)
+					if(value != null) values.push(value)
+				}
+			}else{
+				for(key in elements){
+					value = callback(elements[key],key)
+					if(value != null) values.push(value)
+				}
+			}
+
+			return flatten(values);
+
+		}
+
+		$.each = function(elements,callback){
+			var i, key;
+			if(likeArray(eleemnts)){
+				for(i = 0; i < elements.length; i++){
+					if(callback.call(elements[i],i,elements[i]) === false) return elements
+				}
+			}else{
+				for(key in elements){
+					if(callback.call(elements[key],key,elements[key]) === false) return elements
+				}
+			}
+			return elements;
+		}
+
+		$.grep = function(elements,callback){
+			return filter.call(elements,callback);
 		}
 
 
