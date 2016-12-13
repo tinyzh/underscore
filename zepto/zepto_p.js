@@ -450,6 +450,115 @@ var Zepto = (function(){
 			return filter.call(elements,callback);
 		}
 
+		if(window.JSON) $.parseJSON = JSON.parse;
+
+		$.each('Boolean Number String Function Array Date Object Error'.split(' '),function(i,name){
+			class2type["[Oject " + name + "]" ] = name.toLowerCase();
+		});
+
+		$.fn = {
+			forEach: emptyArray.forEach,
+	        reduce: emptyArray.reduce,  // 方法何用？？？？
+	        push: emptyArray.push,
+	        sort: emptyArray.sort,
+	        indexOf: emptyArray.indexOf,
+	        concat: emptyArray.concat,
+
+	        map : function(fn){
+	        	return $(
+	        			$.map(this,function(el,i){return fn.call(el,i,el)})
+	        		)
+	        },
+	        slice : function(){
+	        	return $(slice.apply(this,arguments));
+	        },
+	        ready : function(callback){
+	        	if(readyRE.test(document.readyState) && document.body) callback($)
+	        	else document.addEventListener('DOMContentLoaded',function(){callback($)},false)
+	        	
+	        	return this;	
+	        },
+	        get : function(idx){
+	        	return idx === undefined ?
+	        		slice.call(this) : 
+	        		this[
+	        			idx >= 0 ? idx : idx + this.length//大于0 就返回本身  小于0(idx=-1 长度为5  返回4-》最后一个元素)
+	        		]
+	        },
+	        toArray : function(){
+	        	return this.get()
+	        },
+	        size : function(){
+	        	return this.length
+	        },
+	        remove : function(){
+	        	return this.each(function(){
+	        		if(this.parentNode != null){
+	        			this.parentNode.removeChild(this);
+	        		}
+	        	})
+	        },
+	        each : function(callback){
+	        	emptyArray.every.call(this,function(el,idx){
+	        		return callback.call(el,idx,el) !== false
+	        	})
+
+	        	return this;
+	        },
+	        filter : function(selector){
+	        	if(isFunction(selector) return this.not(this.not(selector)))
+
+	        	return $(filter.call(this,function(element){
+	        		return zepto.matches(element,selector)
+	        	}))
+	        },
+	        add : function(selector,context){
+	        	return $(uniq(this.concat($(selector,context))))
+	        },
+	        is : function(selector){
+	        	return this.length > 0 && zepto.matches(this[0],selector);
+	        },
+	        not : function(selector){
+	        	var nodes = [];
+	        	if(isFunction(selector) && selector.call !== undefined){
+	        		this.each(function(idx){
+	        			if(!selector.call(this,idx)) nodes.push(this);
+	        		})
+	        	}else{
+	        		var excludes = 
+	        			typeof selector == 'string' ? this.filter(selector) :
+	        				(likeArray(selector) && isFunction(selector.item)) ? slice.call(selector)
+	        				: $(selector);
+
+	        		this.forEach(function(el){
+	        			if(excludes.indexOf(el) < 0) nodes.push(el);
+	        		})
+	        	}
+
+	        	return $(nodes)
+
+	        },
+	        has : function(selector){
+	        	return this.filter(function(){
+	        		return isObject(selector) ? 
+	        			$.contains(this,selector) : 
+	        			$(this).find(selector).size();
+	        	})
+	        },
+	        eq : function(idx){
+	        	return idx === -1 ? this.slice(idx) : this.slice(idx, idx + 1);
+	        },
+	        first : function(){
+	        	var el = this[0];
+
+	        	return el && !isObject(el) ? el : $(el)
+	        }
+
+
+
+
+
+		}
 
 
 
