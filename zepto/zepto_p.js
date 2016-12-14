@@ -552,6 +552,67 @@ var Zepto = (function(){
 	        	var el = this[0];
 
 	        	return el && !isObject(el) ? el : $(el)
+	        },
+	        last : function(){
+	        	var el = this[this.length - 1];
+	        	return el && !isObject(el) ? el : $(el);
+	        },
+	        find : function(selector){
+	        	var result, $this = this;
+
+	        	if(!selector){
+	        		result = $();
+	        	}else if(typeof selector == 'object'){
+	        		var node = this;
+	        		return emptyArray.some.call($this,function(parent){
+	        			return $.contains(parent,node);
+	        		})
+	        	}else if(this.length == 1){
+	        		result = $(zepto.qsa(this[0],selector))
+	        	}else{
+	        		result = this.map(function(){
+	        			return zepto.qsa(this,selector)
+	        		})
+	        	}
+
+	        	return result;
+
+	        },
+	        closest : function(selector,context){
+	        	var node = this[0],collection = false;
+
+	        	if(typeof selector == 'object'){
+	        		collection = $(selector);
+	        	}
+
+	        	while(
+	        		node && !(collection ? collection.indexOf(node) >= 0 : zepto.matches(node,selector));
+	        	){
+	        		node = node !== context && !isDocument(node) && node.parentNode;
+	        	}
+
+	        	return $(node);
+	        },
+	        parents : function(selector){
+	        	var ancestors = [], nodes = this;
+	        	while(nodes.length > 0){
+	        		nodes = $.map(nodes,function(node){
+	        			if((node = node.parentNode) && !isDocument(node) && ancestors.indexOf(node) < 0){
+	        				ancestors.push(node);
+	        				return node
+	        			}
+	        		})
+	        	}
+
+	        	return filtered(ancestors,selector);
+	        },
+	        parent : function(selector){
+	        	return filtered(uniq(this.pluck('parentNode')),selector);
+	        },
+	        children : function(selector){
+	        	return filtered(
+	        		this.map(function(){return children(this)}),selector
+	        	)
 	        }
 
 
